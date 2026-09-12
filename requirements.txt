@@ -1,1 +1,7 @@
 requests
+streamlit
+pypdf
+faiss-cpu
+sentence-transformers
+langchain-google-genai
+python-dotenv
