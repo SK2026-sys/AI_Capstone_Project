@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 from pypdf import PdfReader
 from dotenv import load_dotenv
@@ -7,6 +8,10 @@ from sentence_transformers import SentenceTransformer
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 load_dotenv()
+try:
+    api_key = st.secrets["GOOGLE_API_KEY"]
+except Exception:
+    api_key = os.getenv("GOOGLE_API_KEY")
 model = SentenceTransformer("all-MiniLM-L6-v2")
 st.title("AI Capstone Project")
 uploaded_file = st.file_uploader("Upload a document")
@@ -41,7 +46,7 @@ if uploaded_file is not None:
         retrieved_chunks = [chunks[i] for i in indices[0]]
         
         context = "\n\n".join(retrieved_chunks)
-        llm =ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
+        llm =ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite", google_api_key=api_key)
         decision_prompt = f"""
 Classify this question as DOCUMENT or GENERAL
 Question: {question}
