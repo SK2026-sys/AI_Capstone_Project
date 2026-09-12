@@ -2,6 +2,7 @@ import os
 import streamlit as st
 from pypdf import PdfReader
 from dotenv import load_dotenv
+import pandas as pd
 
 import faiss
 from sentence_transformers import SentenceTransformer
@@ -14,14 +15,23 @@ except Exception:
     api_key = os.getenv("GOOGLE_API_KEY")
 model = SentenceTransformer("all-MiniLM-L6-v2")
 st.title("AI Capstone Project")
-uploaded_file = st.file_uploader("Upload a document")
+uploaded_file = st.file_uploader("Upload a document", type=["pdf" , "txt", "csv", "xlsx"])
 question = st.text_input("Ask a question about the document")
 if uploaded_file is not None:
-    reader = PdfReader(uploaded_file)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text() or ""
-    text = text.strip()
+    file_type = uploaded_file.name.split(".")[-1].lower()
+    if file_type == "pdf":
+        reader = PdfReader(uploaded_file)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() or ""
+        text = text.strip()
+    elif file_type == "txt":
+        text = uploaded_file.getvalue().decode("utf-8")
+    elif file_type == "csv":
+        text = uploaded_file.getvalue().decode("utf-8")
+    elif file_type == "xlsx":
+        df = pd.read_excel(uploaded_file)
+        text = df.to_string(index=False)
     if text:
         st.success("Document processed successfully")
         chunk_size = 500
