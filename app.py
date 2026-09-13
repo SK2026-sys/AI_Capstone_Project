@@ -13,6 +13,17 @@ try:
     api_key = st.secrets["GOOGLE_API_KEY"]
 except Exception:
     api_key = os.getenv("GOOGLE_API_KEY")
+def agent_plan(question):
+    planner_llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash")
+    plan_prompt = f"""Plan how to answer this question.
+    Choose one tool: DOCUMENT_RETRIEVAL or GENERAL_llM.
+    Question: {question}
+    Do not answer the question. Only choose the routing tool.
+    Return only the tool name."""
+    plan = planner_llm.invoke(plan_prompt)
+    plan = plan.content[0]["text"].strip()
+    return plan
+
 model = SentenceTransformer("all-MiniLM-L6-v2")
 st.title("AI Capstone Project")
 uploaded_file = st.file_uploader("Upload a document", type=["pdf" , "txt", "csv", "xlsx"])
@@ -51,6 +62,8 @@ if uploaded_file is not None:
     else:
         st.warning("No readable text found in the document")
     if question:
+        agent_action = agent_plan(question)
+        st.write("Agent plan:", agent_action)
         question_embedding = model.encode([question])
         distances, indices =index.search(question_embedding, k=7)
         retrieved_chunks = [chunks[i] for i in indices[0]]
@@ -59,27 +72,47 @@ if uploaded_file is not None:
         llm =ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite", google_api_key=api_key)
         decision_prompt = f"""
 Classify this question as DOCUMENT or GENERAL
+Document context: {context}
 Question: {question}
 Return only one word: DOCUMENT or GENERAL."""
         try:
+            decision = llm.invoke(decision_prompt)
+            decision = decision.content[0]["text"].strip().upper()
+            if decision == "DOCUMENT":
+                prompt = f"""
+            Answer the user's question using only the document context below.
+            Context: {context}
+            Question: {question}
+            Give a clear and concise answer based only on the context.
+            """   
+        
+        
             
-            decision = llm.invoke(decision_prompt).text.strip()
-        except Exception:
-            st.error("Unable to process your question. Please try again.")
-        if decision == "DOCUMENT":
+        
             
-            prompt = f"""
-Context: {context}
-Question: {question}
-Answer the question using only the context above.
-If the answer is not clearly supported by the context, say: "I cannot find that information in the uploaded document."
-"""
-            response = llm.invoke(prompt)
-            ai_answer = response.text
-            st.markdown(ai_answer)
-        else:
-            st.info("This question is outside the uploaded document.")
-    
+
+
+                response = llm.invoke(prompt)
+                ai_answer = response.content[0]["text"]
+                validation_prompt = f"""
+                Check whether the answer is supported by the document context.
+                Context: {context}
+                Answer: {ai_answer}
+                Reply only VALID if the answer is supported by the context. Otherwise reply INVALID.
+                """
+                validation = llm.invoke(validation_prompt)
+                validation = validation.content[0]["text"].strip().upper()
+                if validation == "VALID":
+                    st.markdown(ai_answer)
+                else:
+                    st.warning("The generated answer could not be validated against the document.")
+                
+            else:
+                safe_question = f"Answer safely and responsibly. Do not provide harmful or dangerous instructions. Question: {question}"
+                general_response = llm.invoke(safe_question)
+                st.markdown(general_response.content[0]["text"])
+        except Exception as e:
+            st.error(str(e))   
     else:
         st.warning("Please enter a question.")
 
