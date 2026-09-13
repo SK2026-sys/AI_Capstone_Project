@@ -1,7 +1,7 @@
 # AI Capstone Project
 ## Project Overview
-This Priject is an AI application that allows a user to upload a PDF document
-The application processes the document and allow the users to ask questions using document retrieval and an AI model.
+This Project is an AI application that allows a user to upload a PDF document
+The application processes the document and allows users to ask questions using document retrieval and an AI model.
 
 ## Architecture
 - Streamlit provides the user interface for uploading documents and asking questions.
@@ -15,7 +15,7 @@ The application processes the document and allow the users to ask questions usin
 1. The user uploads a supported document through the Streamlit interface.
 2. The application extracts the text from the uploaded document.
 3. The extracted text is divided into smaller chunks for processing.
-4. Sentence Transformers converts the chunks into embeddings.
+4. Sentence Transformers convert the chunks into embeddings.
 5. FAISS stores the embeddings and searches for document chunks relevant to the user question.
 6. The agent planner decides whether the question should use document retrieval or the general LLM path.
 7. Gemini generates the response using the selected path.
