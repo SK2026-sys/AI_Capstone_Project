@@ -27,3 +27,9 @@ The application processes the document and allow the users to ask questions usin
 - The quality of general answers dpends on the capabilities of the Gemini model.
 - The application requires an internet connection to access the Gemini model.
 - AI-generated responses may still contain errors, so important information should be verified by the user.
+
+## Deployment
+- The application is deployed on Streamlit Community Cloud.
+- The source code is stored in a GitHub repository and connected to the deployed application.
+- The Google API key is stored securely using Streamlit Secrets and is not included in the public repository.
+- The deployed application was tested successfully with document upload, retrieval and AI generated responses.
