@@ -33,3 +33,21 @@ The application processes the document and allows users to ask questions using d
 - The source code is stored in a GitHub repository and connected to the deployed application.
 - The Google API key is stored securely using Streamlit Secrets and is not included in the public repository.
 - The deployed application was tested successfully with document upload, retrieval and AI generated responses.
+
+## System Setup
+- The project was developed in Visual Studio Code using Python.
+- Required Python libraries are listed in the requirements.txt file.
+- Environment variables such as the Google API key are stored in a .env file for local development.
+- Git and GitHub are used for version control and storing the project source code.
+- Streamlit is used to run the application locally and Streamlit Community Cloud is used for public deployment.
+
+## Agent Roles
+- The agent planner analyzes the user's question and decides whether to use document retrieval or the general LLM path.
+- For the document questions, the system retrieves relevant chunks from FAISS and provides them as context to Gemini.
+- For general questions, the system uses Gemini to generate a response without relying on the uploaded document.
+- The agent therefore performs routing, retrieval and response generation using the available tools.
+
+
+## Challenges Faced
+- The agent planner initially reqired adjustments so that it returned only the correct routing tool instead of answering the question itself.
+- The initial Streamlit Community Cloud deployment required troubleshooting and a reboot before the application deployed successfully.
