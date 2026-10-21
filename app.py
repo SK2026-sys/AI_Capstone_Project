@@ -3,12 +3,17 @@ import streamlit as st
 from pypdf import PdfReader
 from dotenv import load_dotenv
 import pandas as pd
+from pathlib import Path
 
 import faiss
 from sentence_transformers import SentenceTransformer
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 load_dotenv()
+
+css_file = Path(__file__).parent / "style.css"
+
+st.markdown(f"<style>{css_file.read_text()}</style>",unsafe_allow_html=True)
 try:
     api_key = st.secrets["GOOGLE_API_KEY"]
 except Exception:
@@ -25,9 +30,23 @@ def agent_plan(question):
     return plan
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
-st.title("AI Capstone Project")
-uploaded_file = st.file_uploader("Upload a document", type=["pdf" , "txt", "csv", "xlsx"])
-question = st.text_input("Ask a question about the document")
+st.markdown("<style>.block-container {padding-top: 2.5rem; margin-bottom: 0rem;padding-bottom: 0rem;}.stVerticalBlock {gap: 0.5rem;}</style>", unsafe_allow_html=True)
+st.markdown("<style>div[data-testid='stMarkdownContainer'] p:has(+ ol) {margin-bottom: 0rem !important;</style>", unsafe_allow_html=True)
+st.markdown("<h3>AI Knowledge & Decision Support System</h3>", unsafe_allow_html=True)
+col1, col2 = st.columns(2)
+with col1:
+    uploaded_file = st.file_uploader("Upload a document", type=["pdf" , "txt", "csv", "xlsx"])
+with col2:
+    question = st.text_input("Ask a question about the document",placeholder="type your question here...")
+status_placeholder = st.empty()
+answer_placeholder = st.empty()
+if question and uploaded_file is None:
+    st.info("Processing your general question...")
+    with st.expander("Agent Plan"):
+        st.write("GENERAL_LLM")
+    llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash")
+    response = llm.invoke(question)
+    st.markdown(response.content[0]["text"])
 if uploaded_file is not None:
     file_type = uploaded_file.name.split(".")[-1].lower()
     if file_type == "pdf":
@@ -44,7 +63,7 @@ if uploaded_file is not None:
         df = pd.read_excel(uploaded_file)
         text = df.to_string(index=False)
     if text:
-        st.success("Document processed successfully")
+        status_placeholder.success("Document processed successfully")
         chunk_size = 500
         chunk_overlap = 50
         chunks = [text[i:i + chunk_size] for i in range(0, len(text), chunk_size -chunk_overlap)]
@@ -55,15 +74,19 @@ if uploaded_file is not None:
         dimension = embeddings.shape[1]
         index = faiss.IndexFlatL2(dimension)
         index.add(embeddings)
-        st.write("Vectors stored in FAISS;",index.ntotal)
-        st.write("Number of embeddings;",len(embeddings))
+        details_column, plan_column = st.columns(2)
+        with details_column.expander("Technical Details"):
+            st.write("Vectors stored in FAISS;",index.ntotal)
+        
+            st.write("Number of embeddings;",len(embeddings))
 
         
     else:
         st.warning("No readable text found in the document")
     if question:
         agent_action = agent_plan(question)
-        st.write("Agent plan:", agent_action)
+        with plan_column.expander("Agent Plan"):
+            st.write(agent_action)
         question_embedding = model.encode([question])
         distances, indices =index.search(question_embedding, k=7)
         retrieved_chunks = [chunks[i] for i in indices[0]]
@@ -71,7 +94,7 @@ if uploaded_file is not None:
         context = "\n\n".join(retrieved_chunks)
         llm =ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite", google_api_key=api_key)
         decision_prompt = f"""
-Classify this question as DOCUMENT or GENERAL
+If the question refers to the uploaded document, its contents, data, or information, classify it as DOCUMENT. Otherwise classify as GENERAL.
 Document context: {context}
 Question: {question}
 Return only one word: DOCUMENT or GENERAL."""
@@ -103,7 +126,9 @@ Return only one word: DOCUMENT or GENERAL."""
                 validation = llm.invoke(validation_prompt)
                 validation = validation.content[0]["text"].strip().upper()
                 if validation == "VALID":
-                    st.markdown(ai_answer)
+                    with answer_placeholder.container():                 
+                        st.markdown("<div style='font-weight:600; margin-bottom:-0px;'>AI Answer</div",unsafe_allow_html=True)      
+                        st.markdown(ai_answer.replace("\n\n", "\n"), unsafe_allow_html=True)
                 else:
                     st.warning("The generated answer could not be validated against the document.")
                 
